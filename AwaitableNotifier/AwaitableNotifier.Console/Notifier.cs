@@ -8,15 +8,15 @@ public class Notifier
 
     public static void Subscribe(Action handler)
     {
-        if (_isInitialized)
-        {
-            handler();
-            return;
-        }
         lock (_lock)
         {
-            NotificationEvent += handler;
+            if (!_isInitialized)
+            {
+                NotificationEvent += handler;
+                return;
+            }
         }
+        handler();
     }
 
     public static void Unsubscribe(Action handler)
@@ -29,6 +29,7 @@ public class Notifier
 
     public static void Notify()
     {
+        Delegate[] handlers = Array.Empty<Delegate>();
         lock (_lock)
         {
             if (_isInitialized)
@@ -36,9 +37,9 @@ public class Notifier
                 return;
             }
             _isInitialized = true;
+            handlers = NotificationEvent?.GetInvocationList() ?? Array.Empty<Delegate>();
         }
 
-        Delegate[] handlers = NotificationEvent?.GetInvocationList() ?? Array.Empty<Delegate>();
         foreach (var handler in handlers)
         {
             handler.DynamicInvoke();
